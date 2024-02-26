@@ -1,3 +1,5 @@
+import os 
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -22,9 +24,12 @@ class ObjectDetectionPlotter:
         self.texts = texts
         self.image = image
 
-    def plot_results(self):
+    def plot_results(self, file_name):
         """
         Plot the object detection results on the image.
+
+        Args:
+            file_name (str): The name of the output file.
         """
         boxes, scores, labels = self.results[0]["boxes"], self.results[0]["scores"], self.results[0]["labels"]
         text = self.texts[0]
@@ -32,11 +37,11 @@ class ObjectDetectionPlotter:
         fig, ax = plt.subplots()
         ax.imshow(self.image)
 
-        # Iteration on every boxes, scores and labels
+        # Iterate over every box, score, and label
         for box, score, label in zip(boxes, scores, labels):
             box = [round(i, 2) for i in box.detach().numpy()]
 
-            # Convertion of the coordinates of the box for Matplotlib (x, y, width, length)
+            # Convert the coordinates of the box for Matplotlib (x, y, width, length)
             x, y, xmax, ymax = box
             rect = patches.Rectangle((x, y), xmax - x, ymax - y, linewidth=1, edgecolor=colors[label], facecolor='none')
 
@@ -46,4 +51,8 @@ class ObjectDetectionPlotter:
             print(f"Detected {text[label]} with confidence {round(score.item(), 3)} at location {box}")
 
         plt.axis('off')
-        plt.show()
+
+        if not os.path.exists('../results'):
+            os.makedirs('../results')
+            
+        plt.savefig(f'../results/{file_name}.png')
