@@ -55,10 +55,10 @@ class OWLv2SceneRecognition:
 def main():
     # Create an instance of the OWLv2SceneRecognition class
     owl = OWLv2SceneRecognition()
-    dataset = SAPWomenDetectionDataset(images_directory="/home/omilab-gpu/OWLv2-For_SAP_scenes_recognition/data/images", labels_directory="/home/omilab-gpu/OWLv2-For_SAP_scenes_recognition/data/labels")
+    train_dataset = SAPWomenDetectionDataset(images_directory="/home/omilab-gpu/OWLv2-For_SAP_scenes_recognition/data/train/images", labels_directory="/home/omilab-gpu/OWLv2-For_SAP_scenes_recognition/data/train/labels", processor=owl.processor)
+    val_dataset = SAPWomenDetectionDataset(images_directory="/home/omilab-gpu/OWLv2-For_SAP_scenes_recognition/data/val/images", labels_directory="/home/omilab-gpu/OWLv2-For_SAP_scenes_recognition/data/val/labels", processor=owl.processor)
 
-    # Print the first annotation in the dataset
-    print(dataset.dataset["annotations"][0])
+   
 
 if __name__ == "__main__":
     main()

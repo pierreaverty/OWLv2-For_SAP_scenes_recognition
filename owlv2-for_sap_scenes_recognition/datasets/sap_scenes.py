@@ -2,9 +2,9 @@ import os
 import datetime
 
 from PIL import Image
-import torchvision
+from torch.utils.data import Dataset
 
-class SAPDetectionDataset(torchvision.datasets.CocoDetection):
+class SAPDetectionDataset(Dataset):
     """
     A custom dataset class for SAP detection.
 
@@ -52,21 +52,21 @@ class SAPDetectionDataset(torchvision.datasets.CocoDetection):
         Returns:
             tuple: A tuple containing the pixel values of the image and the target label.
         """
-        image, image_id = self.dataset["images"][idx], self.ids[idx]
-
+        image, image_id = self.dataset["images"][idx]["image"], self.dataset["images"][idx]["id"]
         target = self.dataset["categories"][ self.dataset["annotations"][idx]["category_id"]]["name"]
             
         target = {
             'image_id': image_id, 
             'annotations': target
         }
-            
-        encoding = self.processor(images=image, texts=target, return_tensors="pt")
+
+        encoding = self.processor(images=image, text=target["annotations"], return_tensors="pt")
+        
         pixel_values = encoding["pixel_values"].squeeze()
-        target = encoding["labels"][0]
+        target = encoding["input_ids"][0]
+        attention_mask = encoding["attention_mask"][0]
 
-        return pixel_values, target
-
+        return pixel_values, target, attention_mask
     
     def _dataset_init(self):
         """
@@ -77,7 +77,7 @@ class SAPDetectionDataset(torchvision.datasets.CocoDetection):
                 "description": "SAP Detection Dataset",
                 "url": "https://github.com/pierreaverty/OWLv2-For_SAP_scenes_recognition/",
                 "version": "0.1.0",
-                "year": 2023,
+                "year": 2024,
                 "contributor": "pierreaverty",
                 "date_created": datetime.datetime.utcnow().isoformat(' ')
             },
@@ -89,10 +89,11 @@ class SAPDetectionDataset(torchvision.datasets.CocoDetection):
             },
             "images": [],
             "annotations": [],
-            "categories": {
+            "categories": [{
                 "supercategory": "N/A",
                 "id": 0,
-                "name": "woman1_front"},
+                "name": "woman1_front"
+            }]
         }
         
     def _create_dataset(self):
@@ -146,6 +147,102 @@ class SAPDetectionDataset(torchvision.datasets.CocoDetection):
         
         self.dataset["images"].append(image_info)
         self.dataset["annotations"].append(annotation)
+    
+    def get_annotation(self, idx):
+        """
+        Returns the annotation at the given index.
+
+        Args:
+            idx (int): The index of the annotation to retrieve.
+
+        Returns:
+            dict: The annotation at the given index.
+        """
+        return self.dataset["annotations"][idx]
+    
+    def get_image(self, idx):
+        """
+        Returns the image at the given index.
+
+        Args:
+            idx (int): The index of the image to retrieve.
+
+        Returns:
+            dict: The image at the given index.
+        """
+        return self.dataset["images"][idx]
+    
+    def get_category(self, idx):
+        """
+        Returns the category at the given index.
+
+        Args:
+            idx (int): The index of the category to retrieve.
+
+        Returns:
+            dict: The category at the given index.
+        """
+        return self.dataset["categories"][idx]
+    
+    @property
+    def annotations(self):
+        """
+        Returns the annotations for the dataset.
+
+        Returns:
+            list: The annotations for the dataset.
+        """
+        return self.dataset["annotations"]
+    
+    @property
+    def annotation_ids(self):
+        """
+        Returns the annotation IDs for the dataset.
+
+        Returns:
+            list: The annotation IDs for the dataset.
+        """
+        return [annotation["id"] for annotation in self.dataset["annotations"]]
+    
+    @property
+    def images(self):
+        """
+        Returns the images for the dataset.
+
+        Returns:
+            list: The images for the dataset.
+        """
+        return [image["image"] for image in self.dataset["images"]]
+    
+    @property
+    def image_ids(self):    
+        """
+        Returns the image IDs for the dataset.
+
+        Returns:
+            list: The image IDs for the dataset.
+        """
+        return [image["id"] for image in self.dataset["images"]]
+    
+    @property
+    def categories(self):
+        """
+        Returns the categories for the dataset.
+
+        Returns:
+            list: The categories for the dataset.
+        """
+        return [cat["name"] for cat in self.dataset["categories"]]
+    
+    @property
+    def category_ids(self):
+        """
+        Returns the category IDs for the dataset.
+
+        Returns:
+            list: The category IDs for the dataset.
+        """
+        return [cat["id"] for cat in self.dataset["categories"]]
 
 class SAPWomenDetectionDataset(SAPDetectionDataset):
     """
