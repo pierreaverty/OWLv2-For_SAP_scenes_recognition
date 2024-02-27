@@ -40,7 +40,7 @@ class SAPDetectionDataset(Dataset):
         Returns:
             int: The length of the dataset.
         """
-        return len(self.dataset)
+        return len(self.images)
 
     def __getitem__(self, idx):
         """
