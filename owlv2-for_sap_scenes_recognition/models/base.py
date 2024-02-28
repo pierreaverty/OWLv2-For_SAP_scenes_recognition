@@ -18,7 +18,7 @@ class OWLv2:
         self.model =  Owlv2ForObjectDetection.from_pretrained("google/owlv2-base-patch16-ensemble")
 
 
-    def predict(self, image, texts):
+    def predict(self, image, texts) -> dict:
         """
         Predicts the scene in the given image with the provided texts.
 

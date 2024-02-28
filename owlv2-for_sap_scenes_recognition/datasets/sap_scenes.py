@@ -65,7 +65,7 @@ class SAPDetectionDataset(Dataset):
         pixel_values = encoding["pixel_values"].squeeze()
         target = encoding["input_ids"][0]
         attention_mask = encoding["attention_mask"][0]
-
+                
         return pixel_values, target, attention_mask
     
     def _dataset_init(self):
@@ -115,9 +115,6 @@ class SAPDetectionDataset(Dataset):
             image_file (str): The file name of the image.
             i (int): The index of the image.
             category_id (int): The category ID of the image.
-
-        Returns:
-            None
         """
         image = Image.open(os.path.join(self.images_directory, image_file))
         label_file = open(os.path.join(self.labels_directory, image_file.split(".")[0] + ".txt"), "r")
@@ -148,7 +145,7 @@ class SAPDetectionDataset(Dataset):
         self.dataset["images"].append(image_info)
         self.dataset["annotations"].append(annotation)
     
-    def get_annotation(self, idx):
+    def get_annotation(self, idx) -> dict:
         """
         Returns the annotation at the given index.
 
@@ -160,7 +157,7 @@ class SAPDetectionDataset(Dataset):
         """
         return self.dataset["annotations"][idx]
     
-    def get_image(self, idx):
+    def get_image(self, idx) -> dict:
         """
         Returns the image at the given index.
 
@@ -172,7 +169,7 @@ class SAPDetectionDataset(Dataset):
         """
         return self.dataset["images"][idx]
     
-    def get_category(self, idx):
+    def get_category(self, idx) -> dict:
         """
         Returns the category at the given index.
 
@@ -185,7 +182,7 @@ class SAPDetectionDataset(Dataset):
         return self.dataset["categories"][idx]
     
     @property
-    def annotations(self):
+    def annotations(self) -> list:
         """
         Returns the annotations for the dataset.
 
@@ -195,7 +192,7 @@ class SAPDetectionDataset(Dataset):
         return self.dataset["annotations"]
     
     @property
-    def annotation_ids(self):
+    def annotation_ids(self) -> list:
         """
         Returns the annotation IDs for the dataset.
 
@@ -205,7 +202,7 @@ class SAPDetectionDataset(Dataset):
         return [annotation["id"] for annotation in self.dataset["annotations"]]
     
     @property
-    def images(self):
+    def images(self) -> list:
         """
         Returns the images for the dataset.
 
@@ -215,7 +212,7 @@ class SAPDetectionDataset(Dataset):
         return [image["image"] for image in self.dataset["images"]]
     
     @property
-    def image_ids(self):    
+    def image_ids(self) -> list:    
         """
         Returns the image IDs for the dataset.
 
@@ -225,7 +222,7 @@ class SAPDetectionDataset(Dataset):
         return [image["id"] for image in self.dataset["images"]]
     
     @property
-    def categories(self):
+    def categories(self) -> list:
         """
         Returns the categories for the dataset.
 
@@ -235,7 +232,7 @@ class SAPDetectionDataset(Dataset):
         return [cat["name"] for cat in self.dataset["categories"]]
     
     @property
-    def category_ids(self):
+    def category_ids(self) -> list:
         """
         Returns the category IDs for the dataset.
 

@@ -156,5 +156,10 @@ data/
 
 
 # Ignore the results of the model
-
 results/*
+
+# Ignore the lightning logs
+lightning_logs/
+
+# Ignore notebooks
+notebooks/

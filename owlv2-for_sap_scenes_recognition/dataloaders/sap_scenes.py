@@ -1,3 +1,5 @@
+import torch
+
 from torch.utils.data import DataLoader
 
 class SAPDetectionDataLoader(DataLoader):
@@ -13,7 +15,7 @@ class SAPDetectionDataLoader(DataLoader):
     def __init__(self, dataset, batch_size=32, shuffle=True):
         super().__init__(dataset, batch_size=batch_size, shuffle=shuffle, collate_fn=self.collate_fn)
         
-    def collate_fn(self, batch):
+    def collate_fn(self, batch) -> dict:
         """
         Collate function for the data loader.
 
@@ -26,8 +28,9 @@ class SAPDetectionDataLoader(DataLoader):
                 - "input_ids": The input IDs for the images.
                 - "attention_mask": The attention masks for the images.
         """
+    
         return {
-            "pixel_values": batch[0],
-            "input_ids": batch[1],
-            "attention_mask": batch[2],
+            "pixel_values": torch.stack([item[0] for item in batch]),
+            "input_ids": torch.stack([item[1] for item in batch]),
+            "attention_mask": torch.stack([item[2] for item in batch]),
         }
