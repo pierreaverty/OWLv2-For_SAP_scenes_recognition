@@ -20,9 +20,11 @@ class OWLv2ForSapRecognition(pl.LightningModule):
     def __init__(self, lr, weight_decay):
         super().__init__()
         
-        self.model = Owlv2ForObjectDetection.from_pretrained("google/owlv2-base-patch16-ensemble")
+        self.model = Owlv2ForObjectDetection.from_pretrained("google/owlv2-base-patch16-ensemble",
+                                                             num_labels=1,
+                                                             ignore_mismatched_sizes=True,)
         self.processor = Owlv2Processor.from_pretrained("google/owlv2-base-patch16-ensemble")
-        
+
         self.lr = lr
         self.weight_decay = weight_decay
         
@@ -52,11 +54,27 @@ class OWLv2ForSapRecognition(pl.LightningModule):
             The loss value calculated during the common step.
         """
         pixel_values, input_ids, attention_mask = batch["pixel_values"], batch["input_ids"], batch["attention_mask"]
-        
-        print(pixel_values.shape, input_ids.shape, attention_mask.shape)
-        outputs = self.model(pixel_values, input_ids, attention_mask)
 
-        return outputs.loss
+        outputs = self.model(pixel_values=pixel_values, input_ids=input_ids, attention_mask=attention_mask)
+        
+        text_outputs = outputs.text_model_output
+        vision_outputs = outputs.vision_model_output
+        
+        text_embeds = text_outputs[1]
+        text_embeds = self.model.owlv2.text_projection(text_embeds)
+        image_embeds = vision_outputs[1]
+        image_embeds = self.model.owlv2.visual_projection(image_embeds)
+
+        # normalized features
+        image_embeds = image_embeds / torch.linalg.norm(image_embeds, ord=2, dim=-1, keepdim=True)
+        text_embeds_norm = text_embeds / torch.linalg.norm(text_embeds, ord=2, dim=-1, keepdim=True)
+
+        # cosine similarity as logits and set it on the correct device
+        logit_scale = self.model.owlv2.logit_scale.exp().to(image_embeds.device)
+        
+        logits_per_text = torch.matmul(text_embeds_norm, image_embeds.t()) * logit_scale
+        
+        return self.owlv2_loss(logits_per_text)
             
     def training_step(self, batch, batch_idx):
         """
@@ -70,7 +88,7 @@ class OWLv2ForSapRecognition(pl.LightningModule):
             torch.Tensor: The loss value.
         """
         loss = self.common_step(batch, batch_idx)
-            
+
         self.log("train_loss", loss)
             
         return loss
@@ -87,7 +105,7 @@ class OWLv2ForSapRecognition(pl.LightningModule):
             torch.Tensor: The loss value.
         """
         loss = self.common_step(batch, batch_idx)
-            
+
         self.log("val_loss", loss)
             
         return loss
@@ -102,4 +120,15 @@ class OWLv2ForSapRecognition(pl.LightningModule):
         return torch.optim.AdamW(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
     
     
+    
+    # Copied from transformers.models.clip.modeling_clip.contrastive_loss with clip->owlv2
+    def contrastive_loss(self, logits: torch.Tensor) -> torch.Tensor:
+        return nn.functional.cross_entropy(logits, torch.arange(len(logits), device=logits.device))
+
+
+    # Copied from transformers.models.clip.modeling_clip.clip_loss with clip->owlv2
+    def owlv2_loss(self, similarity: torch.Tensor) -> torch.Tensor:
+        caption_loss = self.contrastive_loss(similarity)
+        image_loss = self.contrastive_loss(similarity.t())
+        return (caption_loss + image_loss) / 2.0
     

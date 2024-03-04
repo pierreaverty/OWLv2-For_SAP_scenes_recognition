@@ -29,11 +29,7 @@ def main():
     train_dataloader = SAPDetectionDataLoader(train_dataset, batch_size=4, shuffle=True)
     val_dataloader = SAPDetectionDataLoader(val_dataset, batch_size=2)
 
-    batch = next(iter(train_dataloader))
-    
-    outputs = owl(batch["pixel_values"], batch["input_ids"], batch["attention_mask"])
-    
-    trainer = Trainer(max_steps=300, gradient_clip_val=0.1)
+    trainer = Trainer(max_steps=300, gradient_clip_val=0.1, log_every_n_steps=5)
     trainer.fit(owl, train_dataloader, val_dataloader)
     
 if __name__ == "__main__":
