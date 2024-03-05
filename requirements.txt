@@ -8,3 +8,4 @@ numpy
 torchvision
 lightning
 tensorboard
+cocotools

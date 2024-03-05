@@ -54,9 +54,9 @@ class OWLv2ForSapRecognition(pl.LightningModule):
             The loss value calculated during the common step.
         """        
         pixel_values, input_ids, attention_mask = batch["pixel_values"], batch["input_ids"], batch["attention_mask"]
-        
-        outputs = self.model(pixel_values=pixel_values, input_ids=input_ids, attention_mask=attention_mask)
 
+        outputs = checkpoint(self.model, input_ids, pixel_values, attention_mask)
+        
         text_outputs = outputs.text_model_output
         vision_outputs = outputs.vision_model_output
         
@@ -75,7 +75,7 @@ class OWLv2ForSapRecognition(pl.LightningModule):
         logits_per_text = torch.matmul(text_embeds_norm, image_embeds.t()) * logit_scale
         
         return self.owlv2_loss(logits_per_text)
-            
+
     def training_step(self, batch, batch_idx):
         """
         Training step for the model.
@@ -88,11 +88,12 @@ class OWLv2ForSapRecognition(pl.LightningModule):
             torch.Tensor: The loss value.
         """
         loss = self.common_step(batch, batch_idx)
-        
-        self.log("train_loss", loss)
-        
-        return loss
 
+        self.log("train_loss", loss)
+
+        return loss
+    
+    @torch.no_grad()
     def validation_step(self, batch, batch_idx):
         """
         Validation step for the model.
@@ -107,7 +108,7 @@ class OWLv2ForSapRecognition(pl.LightningModule):
         loss = self.common_step(batch, batch_idx)
 
         self.log("val_loss", loss)
-            
+        
         return loss
     
     def configure_optimizers(self):
@@ -131,4 +132,25 @@ class OWLv2ForSapRecognition(pl.LightningModule):
         caption_loss = self.contrastive_loss(similarity)
         image_loss = self.contrastive_loss(similarity.t())
         return (caption_loss + image_loss) / 2.0
-    
+
+    def predict(self, image, texts) -> dict:
+        """
+        Predicts the scene in the given image with the provided texts.
+
+        Args:
+            image: The input image for scene recognition.
+            texts: The input texts for scene recognition.
+
+        Returns:
+            results: The predicted scene results in Pascal VOC format.
+
+        """
+        inputs = self.processor(text=texts, images=image, return_tensors="pt")
+        outputs = self.model(**inputs)
+
+        # Target image sizes (height, width) to rescale box predictions [batch_size, 2]
+        target_sizes = torch.Tensor([image.size[::-1]])
+        # Convert outputs (bounding boxes and class logits) to Pascal VOC Format (xmin, ymin, xmax, ymax)
+        results = self.processor.post_process_object_detection(outputs=outputs, target_sizes=target_sizes, threshold=0.1)
+
+        return results
