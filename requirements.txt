@@ -6,6 +6,5 @@ transformers
 matplotlib
 numpy
 torchvision
-via2coco
 lightning
 tensorboard

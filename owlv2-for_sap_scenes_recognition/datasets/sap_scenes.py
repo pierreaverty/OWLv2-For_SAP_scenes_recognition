@@ -1,10 +1,12 @@
 import os
 import datetime
+import torchvision
 
 from PIL import Image
 from torch.utils.data import Dataset
+import json
 
-class SAPDetectionDataset(Dataset):
+class SAPDetectionDataset(torchvision.datasets.CocoDetection):
     """
     A custom dataset class for SAP detection.
 
@@ -25,22 +27,21 @@ class SAPDetectionDataset(Dataset):
         _create_dataset(): Creates the dataset by loading images and labels.
     """
 
-    def __init__(self, images_directory, labels_directory, processor=None):
-        self.images_directory = images_directory
-        self.labels_directory = labels_directory
-        self.images_files = os.listdir(images_directory)
-        self.labels_files = os.listdir(labels_directory)
-        self.processor = processor
-        self._create_dataset()
+    def __init__(self, directory, processor=None):
+        self.directory = directory if directory.endswith("/") else directory + "/"
 
-    def __len__(self):
-        """
-        Returns the length of the dataset.
         
-        Returns:
-            int: The length of the dataset.
-        """
-        return len(self.images)
+        self.images_directory = directory+"images"
+        self.labels_directory = directory+"labels"
+        
+        self.images_files = os.listdir(self.images_directory)
+        self.labels_files = os.listdir(self.labels_directory)
+        
+        self._create_dataset()
+        
+        super(SAPDetectionDataset, self).__init__(self.images_directory, self.data_path)
+        
+        self.processor = processor
 
     def __getitem__(self, idx):
         """
@@ -52,12 +53,12 @@ class SAPDetectionDataset(Dataset):
         Returns:
             tuple: A tuple containing the pixel values of the image and the target label.
         """
-        image, image_id = self.dataset["images"][idx]["image"], self.dataset["images"][idx]["id"]
-        target = self.dataset["categories"][ self.dataset["annotations"][idx]["category_id"]]["name"]
-            
+        image, label = super(SAPDetectionDataset, self).__getitem__(idx)
+        image_id = self.ids[idx]
+          
         target = {
             'image_id': image_id, 
-            'annotations': target
+            'annotations': "women1_front"
         }
 
         encoding = self.processor(images=image, text=target["annotations"], return_tensors="pt")
@@ -100,13 +101,19 @@ class SAPDetectionDataset(Dataset):
         """
         Creates the dataset by loading images and labels.
         """
+        
         self._dataset_init()
         
         category_id = 0
         for i, image_file in enumerate(self.images_files):
             self._create_coco_object(image_file, i, category_id)
-    
-    
+        
+        with open(f'{self.directory}label.json', 'w') as f:
+            json.dump(self.dataset, f)
+        
+        self.dataset = None
+        self.data_path = self.directory+"label.json"
+
     def _create_coco_object(self, image_file, i, category_id):
         """
         Creates a COCO object for a given image file and adds it to the dataset.
@@ -124,7 +131,6 @@ class SAPDetectionDataset(Dataset):
         image_info = {
             "id": i,
             "file_name": os.path.join(self.images_directory, image_file),
-            "image": image,
             "width": image.width,
             "height": image.height,
             "coco_url": "",
@@ -144,127 +150,3 @@ class SAPDetectionDataset(Dataset):
         
         self.dataset["images"].append(image_info)
         self.dataset["annotations"].append(annotation)
-    
-    def get_annotation(self, idx) -> dict:
-        """
-        Returns the annotation at the given index.
-
-        Args:
-            idx (int): The index of the annotation to retrieve.
-
-        Returns:
-            dict: The annotation at the given index.
-        """
-        return self.dataset["annotations"][idx]
-    
-    def get_image(self, idx) -> dict:
-        """
-        Returns the image at the given index.
-
-        Args:
-            idx (int): The index of the image to retrieve.
-
-        Returns:
-            dict: The image at the given index.
-        """
-        return self.dataset["images"][idx]
-    
-    def get_category(self, idx) -> dict:
-        """
-        Returns the category at the given index.
-
-        Args:
-            idx (int): The index of the category to retrieve.
-
-        Returns:
-            dict: The category at the given index.
-        """
-        return self.dataset["categories"][idx]
-    
-    @property
-    def annotations(self) -> list:
-        """
-        Returns the annotations for the dataset.
-
-        Returns:
-            list: The annotations for the dataset.
-        """
-        return self.dataset["annotations"]
-    
-    @property
-    def annotation_ids(self) -> list:
-        """
-        Returns the annotation IDs for the dataset.
-
-        Returns:
-            list: The annotation IDs for the dataset.
-        """
-        return [annotation["id"] for annotation in self.dataset["annotations"]]
-    
-    @property
-    def images(self) -> list:
-        """
-        Returns the images for the dataset.
-
-        Returns:
-            list: The images for the dataset.
-        """
-        return [image["image"] for image in self.dataset["images"]]
-    
-    @property
-    def image_ids(self) -> list:    
-        """
-        Returns the image IDs for the dataset.
-
-        Returns:
-            list: The image IDs for the dataset.
-        """
-        return [image["id"] for image in self.dataset["images"]]
-    
-    @property
-    def categories(self) -> list:
-        """
-        Returns the categories for the dataset.
-
-        Returns:
-            list: The categories for the dataset.
-        """
-        return [cat["name"] for cat in self.dataset["categories"]]
-    
-    @property
-    def category_ids(self) -> list:
-        """
-        Returns the category IDs for the dataset.
-
-        Returns:
-            list: The category IDs for the dataset.
-        """
-        return [cat["id"] for cat in self.dataset["categories"]]
-
-class SAPWomenDetectionDataset(SAPDetectionDataset):
-    """
-    A custom dataset class for SAP women detection, inheriting from SAPDetectionDataset.
-
-    Args:
-        images_directory (str): The directory path containing the images.
-        labels_directory (str): The directory path containing the labels.
-        processor (optional): The processor to apply to the dataset.
-
-    Methods:
-        __init__(images_directory, labels_directory, processor): Initializes the SAPWomenDetectionDataset.
-        _create_dataset(): Creates the dataset by loading images and labels, filtering for images with "woman" in the file name.
-    """
-
-    def __init__(self, images_directory, labels_directory, processor=None):
-        super().__init__(images_directory, labels_directory, processor)
-
-    def _create_dataset(self):
-        """
-        Creates the dataset by loading images and labels, filtering for images with "woman" in the file name.
-        """
-        self._dataset_init()
-        
-        category_id = 0
-        for i, image_file in enumerate(self.images_files):
-            if "woman" in image_file:
-                self._create_coco_object(image_file, i, category_id)

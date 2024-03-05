@@ -52,11 +52,11 @@ class OWLv2ForSapRecognition(pl.LightningModule):
 
         Returns:
             The loss value calculated during the common step.
-        """
+        """        
         pixel_values, input_ids, attention_mask = batch["pixel_values"], batch["input_ids"], batch["attention_mask"]
-
-        outputs = self.model(pixel_values=pixel_values, input_ids=input_ids, attention_mask=attention_mask)
         
+        outputs = self.model(pixel_values=pixel_values, input_ids=input_ids, attention_mask=attention_mask)
+
         text_outputs = outputs.text_model_output
         vision_outputs = outputs.vision_model_output
         
@@ -88,9 +88,9 @@ class OWLv2ForSapRecognition(pl.LightningModule):
             torch.Tensor: The loss value.
         """
         loss = self.common_step(batch, batch_idx)
-
+        
         self.log("train_loss", loss)
-            
+        
         return loss
 
     def validation_step(self, batch, batch_idx):

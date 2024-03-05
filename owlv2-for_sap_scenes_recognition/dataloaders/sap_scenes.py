@@ -12,7 +12,7 @@ class SAPDetectionDataLoader(DataLoader):
         shuffle (bool, optional): Whether to shuffle the data. Defaults to True.
     """
 
-    def __init__(self, dataset, batch_size=32, shuffle=False, num_workers=23):
+    def __init__(self, dataset, batch_size=32, shuffle=False, num_workers=0):
         super().__init__(dataset, batch_size=batch_size, shuffle=shuffle, collate_fn=self.collate_fn, num_workers=num_workers)
         
     def collate_fn(self, batch) -> dict:
@@ -28,7 +28,8 @@ class SAPDetectionDataLoader(DataLoader):
                 - "input_ids": The input IDs for the images.
                 - "attention_mask": The attention masks for the images.
         """
-        
+        torch.cuda.empty_cache()
+
         return {
             "pixel_values": torch.stack([item[0] for item in batch]),
             "input_ids": torch.stack([item[1] for item in batch]),
