@@ -29,7 +29,7 @@ def main():
     train_dataloader = SAPDetectionDataLoader(train_dataset, batch_size=1, shuffle=True)
     val_dataloader = SAPDetectionDataLoader(val_dataset, batch_size=1)
 
-    trainer = Trainer(max_steps=300, gradient_clip_val=0.1, log_every_n_steps=1, precision=16, accelerator='cuda')
+    trainer = Trainer(max_steps=300, gradient_clip_val=0.1, log_every_n_steps=1, precision=64, accelerator='cuda')
     trainer.fit(owl, train_dataloader, val_dataloader)
 
 

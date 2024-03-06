@@ -56,7 +56,7 @@ class OWLv2ForSapRecognition(pl.LightningModule):
         pixel_values, input_ids, attention_mask = batch["pixel_values"], batch["input_ids"], batch["attention_mask"]
 
         outputs = checkpoint(self.model, input_ids, pixel_values, attention_mask)
-        
+
         text_outputs = outputs.text_model_output
         vision_outputs = outputs.vision_model_output
         
@@ -73,7 +73,7 @@ class OWLv2ForSapRecognition(pl.LightningModule):
         logit_scale = self.model.owlv2.logit_scale.exp().to(image_embeds.device)
         
         logits_per_text = torch.matmul(text_embeds_norm, image_embeds.t()) * logit_scale
-        
+
         return self.owlv2_loss(logits_per_text)
 
     def training_step(self, batch, batch_idx):
@@ -88,7 +88,7 @@ class OWLv2ForSapRecognition(pl.LightningModule):
             torch.Tensor: The loss value.
         """
         loss = self.common_step(batch, batch_idx)
-
+        print(loss)
         self.log("train_loss", loss)
 
         return loss
@@ -131,6 +131,7 @@ class OWLv2ForSapRecognition(pl.LightningModule):
     def owlv2_loss(self, similarity: torch.Tensor) -> torch.Tensor:
         caption_loss = self.contrastive_loss(similarity)
         image_loss = self.contrastive_loss(similarity.t())
+
         return (caption_loss + image_loss) / 2.0
 
     def predict(self, image, texts) -> dict:
