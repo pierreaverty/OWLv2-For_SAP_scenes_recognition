@@ -33,4 +33,5 @@ class SAPDetectionDataLoader(DataLoader):
             "pixel_values": torch.stack([item[0] for item in batch]),
             "input_ids": torch.stack([item[1] for item in batch]),
             "attention_mask": torch.stack([item[2] for item in batch]),
+            "target": [item[3] for item in batch],
         }

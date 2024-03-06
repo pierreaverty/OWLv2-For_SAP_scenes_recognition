@@ -17,7 +17,7 @@ class OWLv2ForSapRecognition(pl.LightningModule):
         processor (Owlv2Processor): OWLv2 processor for object detection.
     """
 
-    def __init__(self, lr, weight_decay):
+    def __init__(self, lr, weight_decay, loss):
         super().__init__()
         
         self.model = Owlv2ForObjectDetection.from_pretrained("google/owlv2-base-patch16-ensemble",
@@ -27,6 +27,7 @@ class OWLv2ForSapRecognition(pl.LightningModule):
 
         self.lr = lr
         self.weight_decay = weight_decay
+        self.loss = loss
         
     def forward(self, pixel_values, input_ids, attention_mask) -> dict:
         """
@@ -56,25 +57,9 @@ class OWLv2ForSapRecognition(pl.LightningModule):
         pixel_values, input_ids, attention_mask = batch["pixel_values"], batch["input_ids"], batch["attention_mask"]
 
         outputs = checkpoint(self.model, input_ids, pixel_values, attention_mask)
+        loss = self.loss(outputs, batch["target"])
 
-        text_outputs = outputs.text_model_output
-        vision_outputs = outputs.vision_model_output
-        
-        text_embeds = text_outputs[1]
-        text_embeds = self.model.owlv2.text_projection(text_embeds)
-        image_embeds = vision_outputs[1]
-        image_embeds = self.model.owlv2.visual_projection(image_embeds)
-
-        # normalized features
-        image_embeds = image_embeds / torch.linalg.norm(image_embeds, ord=2, dim=-1, keepdim=True)
-        text_embeds_norm = text_embeds / torch.linalg.norm(text_embeds, ord=2, dim=-1, keepdim=True)
-
-        # cosine similarity as logits and set it on the correct device
-        logit_scale = self.model.owlv2.logit_scale.exp().to(image_embeds.device)
-        
-        logits_per_text = torch.matmul(text_embeds_norm, image_embeds.t()) * logit_scale
-
-        return self.owlv2_loss(logits_per_text)
+        return loss
 
     def training_step(self, batch, batch_idx):
         """
@@ -93,7 +78,6 @@ class OWLv2ForSapRecognition(pl.LightningModule):
 
         return loss
     
-    @torch.no_grad()
     def validation_step(self, batch, batch_idx):
         """
         Validation step for the model.
@@ -119,20 +103,6 @@ class OWLv2ForSapRecognition(pl.LightningModule):
             tuple: A tuple containing the optimizer and learning rate scheduler.
         """
         return torch.optim.AdamW(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
-    
-    
-    
-    # Copied from transformers.models.clip.modeling_clip.contrastive_loss with clip->owlv2
-    def contrastive_loss(self, logits: torch.Tensor) -> torch.Tensor:
-        return nn.functional.cross_entropy(logits, torch.arange(len(logits), device=logits.device))
-
-
-    # Copied from transformers.models.clip.modeling_clip.clip_loss with clip->owlv2
-    def owlv2_loss(self, similarity: torch.Tensor) -> torch.Tensor:
-        caption_loss = self.contrastive_loss(similarity)
-        image_loss = self.contrastive_loss(similarity.t())
-
-        return (caption_loss + image_loss) / 2.0
 
     def predict(self, image, texts) -> dict:
         """

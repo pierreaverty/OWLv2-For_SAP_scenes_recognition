@@ -10,6 +10,7 @@ import matplotlib.patches as patches
 from transformers import Owlv2Processor
 from models.tuned import OWLv2ForSapRecognition 
 from utils.plotter import ObjectDetectionPlotter
+from losses.cross_entropy import CrossEntropyForOWLv2
 
 from datasets.sap_scenes import SAPDetectionDataset
 from dataloaders.sap_scenes import SAPDetectionDataLoader
@@ -21,7 +22,7 @@ from pytorch_lightning import Trainer
 
 
 def main():
-    owl = OWLv2ForSapRecognition(lr=1e-4, weight_decay=1e-4)
+    owl = OWLv2ForSapRecognition(lr=1e-4, weight_decay=1e-4, loss=CrossEntropyForOWLv2())
     
     train_dataset = SAPDetectionDataset(directory="/home/omilab-gpu/OWLv2-For_SAP_scenes_recognition/data/train/", processor=owl.processor)
     val_dataset = SAPDetectionDataset(directory="/home/omilab-gpu/OWLv2-For_SAP_scenes_recognition/data/val/", processor=owl.processor)

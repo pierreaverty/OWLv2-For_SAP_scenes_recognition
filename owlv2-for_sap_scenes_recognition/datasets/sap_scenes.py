@@ -55,19 +55,23 @@ class SAPDetectionDataset(torchvision.datasets.CocoDetection):
         """
         image, label = super(SAPDetectionDataset, self).__getitem__(idx)
         image_id = self.ids[idx]
-          
+        
         target = {
-            'image_id': image_id, 
-            'annotations': "women1_front"
+            'image_id': label[0]["image_id"], 
+            'annotations': "women1_front",
+            'category_id': 0,
+            'bbox': label[0]["bbox"],
+            'objectness': 1
         }
 
         encoding = self.processor(images=image, text=target["annotations"], return_tensors="pt")
         
         pixel_values = encoding["pixel_values"].squeeze()
-        target = encoding["input_ids"][0]
+        input_ids = encoding["input_ids"][0]
         attention_mask = encoding["attention_mask"][0]
+        
                 
-        return pixel_values, target, attention_mask
+        return pixel_values, input_ids, attention_mask, target
     
     def _dataset_init(self):
         """
@@ -110,7 +114,7 @@ class SAPDetectionDataset(torchvision.datasets.CocoDetection):
         
         with open(f'{self.directory}label.json', 'w') as f:
             json.dump(self.dataset, f)
-        
+
         self.dataset = None
         self.data_path = self.directory+"label.json"
 
