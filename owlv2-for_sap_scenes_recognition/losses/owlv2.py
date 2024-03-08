@@ -9,6 +9,7 @@ class CrossEntropyForOWLv2(nn.Module):
 
     def __init__(self, weight=None, size_average=True):
         super(CrossEntropyForOWLv2, self).__init__()
+        
         self.classification_loss = nn.CrossEntropyLoss(weight=weight, reduction='mean' if size_average else 'sum')
         self.objectness_loss = nn.BCEWithLogitsLoss(reduction='mean' if size_average else 'sum')
         self.box_loss = nn.L1Loss(reduction='mean' if size_average else 'sum')  # Example for L1 loss
@@ -43,5 +44,7 @@ class CrossEntropyForOWLv2(nn.Module):
         total_loss = (class_loss + objectness_loss + box_loss) / 3
         
         total_loss.requires_grad = True
-        
+
         return total_loss
+
+    
