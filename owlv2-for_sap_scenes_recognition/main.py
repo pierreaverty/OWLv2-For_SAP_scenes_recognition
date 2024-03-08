@@ -1,43 +1,50 @@
-import os
-import requests
-import torch
+from PIL import Image
 
-import numpy as np
-
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-
-from transformers import Owlv2Processor
 from models.owlv2 import OWLv2ForSapRecognition 
+
 from utils.plotter import ObjectDetectionPlotter
-from losses.owlv2 import CrossEntropyForOWLv2
+from utils.owlv2 import collate_fn
 
 from datasets.sap_scenes import SAPDetectionDataset
-from dataloaders.sap_scenes import SAPDetectionDataLoader
 
-from PIL import Image
-from torch.utils.data import DataLoader
-from pytorch_lightning import Trainer
+from trainers.owlv2 import OWLv2Trainer
 
+from transformers import TrainingArguments
 
+train_directory = "/home/omilab-gpu/OWLv2-For_SAP_scenes_recognition/data/train/"
+val_directory = "/home/omilab-gpu/OWLv2-For_SAP_scenes_recognition/data/val/"
+test_pred_path = "/home/omilab-gpu/OWLv2-For_SAP_scenes_recognition/data/train/images/woman1_front_1.jpg"
+
+training_args = TrainingArguments(
+    output_dir="owlvit-base-patch32_FT_sap_scenes_recognition",
+    per_device_train_batch_size=1,
+    num_train_epochs=2,
+    fp16=True,
+    save_steps=200,
+    logging_steps=50,
+    learning_rate=1e-5,
+    weight_decay=1e-4,
+    save_total_limit=2,
+    remove_unused_columns=False,
+    push_to_hub=False,
+    dataloader_pin_memory=False,
+    gradient_accumulation_steps=1
+)
 
 def main():
-    owl = OWLv2ForSapRecognition(lr=1, weight_decay=1, loss=CrossEntropyForOWLv2())
+    owl = OWLv2ForSapRecognition()
     
-    train_dataset = SAPDetectionDataset(directory="/home/omilab-gpu/OWLv2-For_SAP_scenes_recognition/data/train/", processor=owl.processor)
-    val_dataset = SAPDetectionDataset(directory="/home/omilab-gpu/OWLv2-For_SAP_scenes_recognition/data/val/", processor=owl.processor)
+    train_dataset = SAPDetectionDataset(directory=train_directory, processor=owl.processor)
+    val_dataset = SAPDetectionDataset(directory=val_directory, processor=owl.processor)
+    
+    trainer = OWLv2Trainer(owl, training_args, train_dataset, val_dataset, data_collator=collate_fn, tokenizer=owl.processor)
+    
+    trainer.train()
 
-    train_dataloader = SAPDetectionDataLoader(train_dataset, batch_size=5, shuffle=True)
-    val_dataloader = SAPDetectionDataLoader(val_dataset, batch_size=5)
-
-    trainer = Trainer(max_steps=2, gradient_clip_val=0.1, log_every_n_steps=1, precision=32, accelerator='gpu')
-    trainer.fit(owl, train_dataloader, val_dataloader)
-
-    path = "/home/omilab-gpu/OWLv2-For_SAP_scenes_recognition/data/train/images/woman1_front_1.jpg"
-    image = Image.open(path)
+    image = Image.open(test_pred_path)
     
     text = [["women1_front"]]
-    results = owl.predict( image, text)
+    results = owl.predict(image, text)
     plotter = ObjectDetectionPlotter(results, texts=text, image=image)
 
     plotter.plot_results("output")

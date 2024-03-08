@@ -8,4 +8,6 @@ class OWLv2Trainer(Trainer):
         self.kwargs = kwargs
 
     def compute_loss(self, model, inputs, return_outputs=False):
-        return super().compute_loss(model, inputs, return_outputs)
+        labels = inputs["labels"]
+        
+        print(labels)

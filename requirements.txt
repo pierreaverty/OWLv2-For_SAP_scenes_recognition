@@ -6,6 +6,5 @@ transformers
 matplotlib
 numpy
 torchvision
-lightning
-tensorboard
 cocotools
+transformers[torch]
