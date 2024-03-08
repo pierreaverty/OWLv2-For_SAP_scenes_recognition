@@ -16,7 +16,7 @@ val_directory = "/home/omilab-gpu/OWLv2-For_SAP_scenes_recognition/data/val/"
 test_pred_path = "/home/omilab-gpu/OWLv2-For_SAP_scenes_recognition/data/train/images/woman1_front_1.jpg"
 
 training_args = TrainingArguments(
-    output_dir="owlvit-base-patch32_FT_sap_scenes_recognition",
+    output_dir="../owlvit-base-patch32_FT_sap_scenes_recognition",
     per_device_train_batch_size=1,
     num_train_epochs=2,
     fp16=True,
@@ -30,14 +30,21 @@ training_args = TrainingArguments(
     dataloader_pin_memory=False,
     gradient_accumulation_steps=1
 )
-
+import datasets
 def main():
     owl = OWLv2ForSapRecognition()
     
     train_dataset = SAPDetectionDataset(directory=train_directory, processor=owl.processor)
     val_dataset = SAPDetectionDataset(directory=val_directory, processor=owl.processor)
-    
-    trainer = OWLv2Trainer(owl, training_args, train_dataset, val_dataset, data_collator=collate_fn, tokenizer=owl.processor)
+    print(isinstance(train_dataset, datasets.Dataset))
+    trainer = OWLv2Trainer(
+        model=owl, 
+        args=training_args, 
+        train_dataset=train_dataset, 
+        eval_dataset=val_dataset, 
+        data_collator=collate_fn, 
+        tokenizer=owl.processor
+    )
     
     trainer.train()
 

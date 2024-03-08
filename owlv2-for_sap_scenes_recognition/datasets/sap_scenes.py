@@ -1,12 +1,10 @@
 import os
 import datetime
-import torchvision
 
 from PIL import Image
 from torch.utils.data import Dataset
-import json
 
-class SAPDetectionDataset(torchvision.datasets.CocoDetection):
+class SAPDetectionDataset(Dataset):
     """
     A custom dataset class for SAP detection.
 
@@ -28,20 +26,21 @@ class SAPDetectionDataset(torchvision.datasets.CocoDetection):
     """
 
     def __init__(self, directory, processor=None):
-        self.directory = directory if directory.endswith("/") else directory + "/"
-
-        
-        self.images_directory = directory+"images"
-        self.labels_directory = directory+"labels"
-        
+        self.images_directory = directory + "images/"
+        self.labels_directory = directory + "labels/"
         self.images_files = os.listdir(self.images_directory)
         self.labels_files = os.listdir(self.labels_directory)
-        
-        self._create_dataset()
-        
-        super(SAPDetectionDataset, self).__init__(self.images_directory, self.data_path)
-        
         self.processor = processor
+        self._create_dataset()
+
+    def __len__(self):
+        """
+        Returns the length of the dataset.
+        
+        Returns:
+            int: The length of the dataset.
+        """
+        return len(self.dataset["images"])
 
     def __getitem__(self, idx):
         """
@@ -53,25 +52,21 @@ class SAPDetectionDataset(torchvision.datasets.CocoDetection):
         Returns:
             tuple: A tuple containing the pixel values of the image and the target label.
         """
-        image, label = super(SAPDetectionDataset, self).__getitem__(idx)
-        image_id = self.ids[idx]
-        
+        image, image_id = self.dataset["images"][idx]["image"], self.dataset["images"][idx]["id"]
+        target = self.dataset["categories"][ self.dataset["annotations"][idx]["category_id"]]["name"]
+            
         target = {
-            'image_id': label[0]["image_id"], 
-            'annotations': "women1_front",
-            'category_id': 0,
-            'bbox': label[0]["bbox"],
-            'objectness': 1
+            'image_id': image_id, 
+            'annotations': target
         }
 
         encoding = self.processor(images=image, text=target["annotations"], return_tensors="pt")
         
         pixel_values = encoding["pixel_values"].squeeze()
-        input_ids = encoding["input_ids"][0]
+        target = encoding["input_ids"][0]
         attention_mask = encoding["attention_mask"][0]
-        
-                
-        return pixel_values, input_ids, attention_mask, target
+
+        return pixel_values, target, attention_mask
     
     def _dataset_init(self):
         """
@@ -105,19 +100,13 @@ class SAPDetectionDataset(torchvision.datasets.CocoDetection):
         """
         Creates the dataset by loading images and labels.
         """
-        
         self._dataset_init()
         
         category_id = 0
         for i, image_file in enumerate(self.images_files):
             self._create_coco_object(image_file, i, category_id)
-        
-        with open(f'{self.directory}label.json', 'w') as f:
-            json.dump(self.dataset, f)
-
-        self.dataset = None
-        self.data_path = self.directory+"label.json"
-
+    
+    
     def _create_coco_object(self, image_file, i, category_id):
         """
         Creates a COCO object for a given image file and adds it to the dataset.
@@ -126,6 +115,9 @@ class SAPDetectionDataset(torchvision.datasets.CocoDetection):
             image_file (str): The file name of the image.
             i (int): The index of the image.
             category_id (int): The category ID of the image.
+
+        Returns:
+            None
         """
         image = Image.open(os.path.join(self.images_directory, image_file))
         label_file = open(os.path.join(self.labels_directory, image_file.split(".")[0] + ".txt"), "r")
@@ -135,6 +127,7 @@ class SAPDetectionDataset(torchvision.datasets.CocoDetection):
         image_info = {
             "id": i,
             "file_name": os.path.join(self.images_directory, image_file),
+            "image": image,
             "width": image.width,
             "height": image.height,
             "coco_url": "",
@@ -154,3 +147,99 @@ class SAPDetectionDataset(torchvision.datasets.CocoDetection):
         
         self.dataset["images"].append(image_info)
         self.dataset["annotations"].append(annotation)
+    
+    def get_annotation(self, idx):
+        """
+        Returns the annotation at the given index.
+
+        Args:
+            idx (int): The index of the annotation to retrieve.
+
+        Returns:
+            dict: The annotation at the given index.
+        """
+        return self.dataset["annotations"][idx]
+    
+    def get_image(self, idx):
+        """
+        Returns the image at the given index.
+
+        Args:
+            idx (int): The index of the image to retrieve.
+
+        Returns:
+            dict: The image at the given index.
+        """
+        return self.dataset["images"][idx]
+    
+    def get_category(self, idx):
+        """
+        Returns the category at the given index.
+
+        Args:
+            idx (int): The index of the category to retrieve.
+
+        Returns:
+            dict: The category at the given index.
+        """
+        return self.dataset["categories"][idx]
+    
+    @property
+    def annotations(self):
+        """
+        Returns the annotations for the dataset.
+
+        Returns:
+            list: The annotations for the dataset.
+        """
+        return self.dataset["annotations"]
+    
+    @property
+    def annotation_ids(self):
+        """
+        Returns the annotation IDs for the dataset.
+
+        Returns:
+            list: The annotation IDs for the dataset.
+        """
+        return [annotation["id"] for annotation in self.dataset["annotations"]]
+    
+    @property
+    def images(self):
+        """
+        Returns the images for the dataset.
+
+        Returns:
+            list: The images for the dataset.
+        """
+        return [image["image"] for image in self.dataset["images"]]
+    
+    @property
+    def image_ids(self):    
+        """
+        Returns the image IDs for the dataset.
+
+        Returns:
+            list: The image IDs for the dataset.
+        """
+        return [image["id"] for image in self.dataset["images"]]
+    
+    @property
+    def categories(self):
+        """
+        Returns the categories for the dataset.
+
+        Returns:
+            list: The categories for the dataset.
+        """
+        return [cat["name"] for cat in self.dataset["categories"]]
+    
+    @property
+    def category_ids(self):
+        """
+        Returns the category IDs for the dataset.
+
+        Returns:
+            list: The category IDs for the dataset.
+        """
+        return [cat["id"] for cat in self.dataset["categories"]]
