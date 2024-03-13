@@ -151,12 +151,6 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# Ignore the results of the model
-results/*
-
-# Ignore notebooks
-data/
-
 # Ignore the model
 owlvit-base-patch32_FT_sap_scenes_recognition/
-
+owlvit-base-patch32_FT_sap_scenes_recognition_image_queries/
