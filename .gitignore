@@ -151,12 +151,12 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# Data use to train the model
-data/
-
-
 # Ignore the results of the model
 results/*
 
 # Ignore notebooks
-notebooks/
+data/
+
+# Ignore the model
+owlvit-base-patch32_FT_sap_scenes_recognition/
+

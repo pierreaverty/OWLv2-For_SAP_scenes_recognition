@@ -1,6 +1,6 @@
 import torch
 
-def collate_fn(self, batch) -> dict:
+def collate_fn(batch) -> dict:
     """
     Collate function for the data loader.
 
@@ -13,7 +13,7 @@ def collate_fn(self, batch) -> dict:
             - "input_ids": The input IDs for the images.
             - "attention_mask": The attention masks for the images.
     """
-        
+
     return {
         "pixel_values": torch.stack([item[0] for item in batch]),
         "input_ids": torch.stack([item[1] for item in batch]),
