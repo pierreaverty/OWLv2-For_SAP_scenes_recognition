@@ -68,3 +68,4 @@ class OWLv2(nn.Module):
         results = self.processor.post_process_object_detection(outputs=outputs, target_sizes=target_sizes, threshold=0.013)
 
         return results
+    

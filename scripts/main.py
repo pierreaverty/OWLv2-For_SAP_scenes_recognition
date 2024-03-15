@@ -6,10 +6,7 @@ from data.sap_scenes import SAPDetectionDataset
 from trainers.owlv2 import OWLv2Trainer
 from transformers import TrainingArguments
 
-from models.owlv2 import (
-    OWLv2, 
-    OWLv2ForSapRecognition 
-)
+from models.owlv2 import OWLv2
 
 # Create training arguments
 training_args = TrainingArguments(
@@ -77,7 +74,7 @@ def predict():
         None
     """
     # Create OWLv2ForSapRecognition model instance
-    owl = OWLv2ForSapRecognition()
+    owl = OWLv2()
     
     # Load the image
     image = Image.open(config.IMAGE_EVALUATION_PATH)

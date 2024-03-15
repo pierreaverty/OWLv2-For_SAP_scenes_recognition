@@ -38,7 +38,7 @@ class OWLv2Trainer(Trainer):
             input_ids = inputs["input_ids"]  # Get the input IDs
             attention_mask = inputs["attention_mask"]  # Get the attention mask
             
-            outputs = model(pixel_values=pixel_values, input_ids=input_ids, attention_mask=attention_mask)  # Forward pass through the model
+            outputs = model.model(pixel_values=pixel_values, input_ids=input_ids, attention_mask=attention_mask)  # Forward pass through the model
         else:
             outputs = model.model.image_guided_detection(pixel_values=pixel_values, query_pixel_values=labels[0]['query_pixel_values'])  # Perform image-guided detection
             

@@ -18,4 +18,4 @@ NB_STEPS = args.nb_steps  # Number of steps
 
 IS_IMAGE_QUERY = args.image_query  # Flag indicating if it's an image query
 IS_TRAINING = args.train  # Flag indicating if it's a training process
-IS_CPU = args.use_cpu  # Flag indicating if CPU should be used
+IS_CPU = args.cpu  # Flag indicating if CPU should be used
